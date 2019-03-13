@@ -60,7 +60,7 @@ class Crawler
     {
         list($headers, $body) = $this->doCheck($lock, $format, $headers);
 
-        if (!(preg_match('/X-Alerts: (\d+)/', $headers, $matches) || 2 == count($matches))) {
+        if (!(preg_match('/X-Alerts: (\d+)/i', $headers, $matches) || 2 == \count($matches))) {
             throw new RuntimeException('The web service did not return alerts count.');
         }
 
@@ -121,9 +121,12 @@ class Crawler
 
         $statusCode = $match[1];
         if (400 == $statusCode) {
-            $data = json_decode($body, true);
+            $data = trim($body);
+            if ('json' === $format) {
+                $data = json_decode($body, true)['error'];
+            }
 
-            throw new RuntimeException($data['error']);
+            throw new RuntimeException($data);
         }
 
         if (200 != $statusCode) {
@@ -132,7 +135,7 @@ class Crawler
 
         $headers = '';
         foreach ($http_response_header as $header) {
-            if (false !== strpos($header, 'X-Alerts: ')) {
+            if (false !== stripos($header, 'X-Alerts: ')) {
                 $headers = $header;
             }
         }
@@ -160,7 +163,7 @@ class Crawler
         $hash = isset($contents['content-hash']) ? $contents['content-hash'] : (isset($contents['hash']) ? $contents['hash'] : '');
         $packages = ['content-hash' => $hash, 'packages' => [], 'packages-dev' => []];
         foreach (['packages', 'packages-dev'] as $key) {
-            if (!is_array($contents[$key])) {
+            if (!\is_array($contents[$key])) {
                 continue;
             }
             foreach ($contents[$key] as $package) {
